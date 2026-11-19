@@ -1,0 +1,13 @@
+{
+  "name": "elit-scada-tehnic",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simulare SCADA pentru Departamentul Tehnic ELIT – proiect de curs (Maparea Legaturilor Structurale)",
+  "scripts": {
+    "start": "node server.js 8080",
+    "dev": "node server.js 8080"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
