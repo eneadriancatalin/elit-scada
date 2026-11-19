@@ -63,6 +63,46 @@ th { color: var(--muted); font-weight: 500; font-size: 12px; background: var(--p
 tbody tr:hover td { background: var(--panel2); }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
+/* ---- culori pe departamente (identitate, nu stare). Orice element cu data-dep="..." primeste --c */
+:root {
+  --d-dg: #5b5bd6; --d-prd: #e5600a; --d-cal: #0e9f8e; --d-ach: #0b84d8; --d-log: #0096b7;
+  --d-vnz: #e03d82; --d-mkt: #9e4fb5; --d-it: #3d9a50; --d-jur: #8a6a4b; --d-ctb: #a68400;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --d-dg: #8d8dff; --d-prd: #ff8b3e; --d-cal: #2ad1b9; --d-ach: #4ba8ff; --d-log: #4ccce6;
+  --d-vnz: #f76fa6; --d-mkt: #d19dff; --d-it: #71d083; --d-jur: #c2a07f; --d-ctb: #f0cc3c; } }
+:root[data-theme="dark"] {
+  --d-dg: #8d8dff; --d-prd: #ff8b3e; --d-cal: #2ad1b9; --d-ach: #4ba8ff; --d-log: #4ccce6;
+  --d-vnz: #f76fa6; --d-mkt: #d19dff; --d-it: #71d083; --d-jur: #c2a07f; --d-ctb: #f0cc3c; }
+[data-dep="Director General"] { --c: var(--d-dg); } [data-dep="Producție"] { --c: var(--d-prd); }
+[data-dep="Calitate"] { --c: var(--d-cal); } [data-dep="Achiziții"] { --c: var(--d-ach); }
+[data-dep="Logistică"] { --c: var(--d-log); } [data-dep="Vânzări"] { --c: var(--d-vnz); }
+[data-dep="Marketing"] { --c: var(--d-mkt); } [data-dep="IT"] { --c: var(--d-it); }
+[data-dep="Juridic"] { --c: var(--d-jur); } [data-dep="Contabilitate"] { --c: var(--d-ctb); }
+.dep-btn { border: 1px solid color-mix(in srgb, var(--c, var(--line-strong)) 45%, transparent); border-left: 4px solid var(--c, var(--line-strong));
+  background: color-mix(in srgb, var(--c, var(--line-strong)) 12%, var(--panel)); color: var(--text); font-weight: 500; }
+.dep-btn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--line-strong)); display: inline-block; margin-right: 6px; vertical-align: middle; }
+.dep-btn:hover { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, var(--panel)); }
+.dep-btn.on { background: var(--c); border-color: var(--c); color: #fff; }
+.dep-btn.on::before { background: #fff; }
+.dep-btn.on small { color: #fff !important; opacity: .85; }
+
+#view-flux .f-row[data-dep] .f-box { border-left: 4px solid var(--c); }
+#view-flux .f-row[data-dep] .f-dn { color: var(--c); font-weight: 600; }
+#view-flux tr[data-dep] td:first-child, #view-flux tr[data-dep] th:first-child { box-shadow: inset 3px 0 0 var(--c); }
+
+/* bara rapida "Vine cineva de la:" */
+.quickdeps { display: flex; align-items: center; gap: 6px; padding: 8px 20px; background: var(--panel); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.quickdeps > span { font-size: 13px; font-weight: 600; white-space: nowrap; margin-right: 4px; }
+.quickdeps button { height: 30px; padding: 0 10px; font-size: 13px; white-space: nowrap; flex: none; }
+@media (max-width: 900px) { .quickdeps { padding: 8px 16px; } }
+
+/* tabul Cereri departamente evidentiat */
+.tabs button.tab-cta { color: var(--panel); background: var(--accent); border-radius: var(--radius); height: 32px; margin: 7px 4px; padding: 0 12px; font-weight: 500; }
+.tabs button.tab-cta:hover { background: var(--accent); opacity: .9; color: var(--panel); }
+.tabs button.tab-cta.active { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+.tabs button.tab-cta.active::after { display: none; }
+
 .demo-banner { background: var(--text); color: var(--panel); font-size: 12px; text-align: center; padding: 6px 16px; }
 .topbar { display: flex; align-items: center; gap: 20px; padding: 0 20px; height: 64px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -111,4 +151,16 @@ main { padding: 24px 20px; max-width: 1440px; margin: 0 auto; }
   .kpi:first-child { border-left: none; padding-left: 0; }
   .clock { display: none; }
   main { padding: 16px; }
+}
+
+/* tiparire (rapoarte TEH): mereu pe fond alb, indiferent de tema aleasa */
+@media print {
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"] {
+    --bg: #fff; --panel: #fff; --panel2: #f2f2f2; --line: #d9d9d9; --line-strong: #b3b3b3;
+    --text: #000; --muted: #555; --accent: #0050c8;
+    --ok: #1a7f37; --warn: #9a6700; --crit: #cf222e; --maint: #8250df; --stop: #6e7781;
+    --ok-bg: #e9f9ee; --warn-bg: #fff5e0; --crit-bg: #ffebeb; --maint-bg: #f6eefc; --stop-bg: #f2f2f2;
+    color-scheme: light;
+  }
+  body { background: #fff; }
 }

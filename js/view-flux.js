@@ -22,6 +22,7 @@
   let root, els = {}, sel = null, deps = [];
 
   const CSS = `
+  .f-note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
   .f-wrap { display: grid; gap: 14px; min-width: 0; }
   .f-intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
   .f-intro h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
@@ -118,8 +119,9 @@
 
   // eticheta pentru un flux de ieșire: valoare live, tag din date sau cod TEH
   function outChip(f) {
-    if (f.tag === "live") return { t: "Disp. " + UI.pct(E.kpi().availability), live: true };
-    if (f.dep === "Director General") return { t: "OEE " + UI.pct(E.kpi().oee), live: true };
+    if (f.rapid && f.dep === "Director General") return { t: "OEE " + UI.pct(E.kpi().oee), live: true };
+    if (f.rapid && f.dep === "Vânzări") return { t: Math.round(E.capacity().rate).toLocaleString("ro-RO") + " kg/h", live: true };
+    if (f.rapid && f.dep === "Logistică") return { t: E.byId.DEP01.values.temp.toFixed(1) + " °C", live: true };
     return { t: f.tag || tehCode(f.info) || OUTTAG[f.dep] || "TEH", live: false };
   }
 
@@ -146,7 +148,7 @@
       <div class="f-core">
         <h4>Departament Tehnic</h4>
         <div class="f-cs">Mentenanță · platforma SCADA</div>
-        <div class="f-cl">${E.data.livrabileTEH.map(l => `<span>${esc(l.cod)}</span>`).join("")}</div>
+        <div class="f-cl"><span>${E.data.livrabileTEH.length} livrabile · TEH 001–${E.data.livrabileTEH[E.data.livrabileTEH.length - 1].cod.slice(4)}</span></div>
         <div class="f-kv">
           <div><small>Disponibilitate</small><b data-live="avail">${UI.pct(k.availability)}</b></div>
           <div><small>OEE</small><b data-live="oee">${UI.pct(k.oee)}</b></div>
@@ -187,7 +189,7 @@
         <p class="f-hint">Treceți cu mouse-ul sau apăsați pe un departament pentru a vedea ce informații schimbă cu noi.</p>
         <div class="f-blk in"><span>Primim (intrări)</span>${E.data.fluxuri.catreTEH.length} fluxuri de la ${new Set(E.data.fluxuri.catreTEH.map(f => f.dep)).size} departamente</div>
         <div class="f-blk out"><span>Oferim (ieșiri)</span>${E.data.fluxuri.dinTEH.length} fluxuri către ${new Set(E.data.fluxuri.dinTEH.map(f => f.dep)).size} departamente</div>
-        <div class="f-blk out"><span>Livrabile proprii</span>${E.data.livrabileTEH.map(l => `<b>${esc(l.cod)}</b>`).join(" · ")}</div>
+        <div class="f-blk out"><span>Livrabile proprii</span>${E.data.livrabileTEH.length} livrabile (TEH 001–026), ${E.data.livrabileTEH.filter(l => l.dep).length} către departamentele din joc</div>
         <div class="f-live">Live din SCADA: disponibilitate <b data-live="avail">${UI.pct(k.availability)}</b> · OEE <b data-live="oee">${UI.pct(k.oee)}</b></div>`;
       return;
     }
@@ -195,7 +197,7 @@
     els.card.innerHTML = `<h4>${esc(nice(d.name))}</h4>
       <p class="f-hint">Legătură structurală cu Departamentul Tehnic</p>
       <div class="f-blk in"><span>Ne trimite (intrare)</span>${d.ins.length ? d.ins.map(f => `<div><b>${esc(f.cod)}</b> – ${esc(f.info)}</div>`).join("") : `<div class="f-none">Nu ne trimite informații formalizate.</div>`}</div>
-      <div class="f-blk out"><span>Primește de la noi (ieșire)</span>${d.outs.length ? d.outs.map(f => `<div>${tehCode(f.info) ? `<b>${esc(tehCode(f.info))}</b> – ` : ""}${esc(f.info)}</div>`).join("") : `<div class="f-none">Nu primește informații de la noi.</div>`}</div>
+      <div class="f-blk out"><span>Primește de la noi (ieșire)</span>${d.outs.length ? d.outs.map(f => `<div><b>${esc(f.tag)}</b> – ${esc(f.info)}</div>`).join("") : `<div class="f-none">Nu primește informații de la noi.</div>`}</div>
       ${isLive(d) ? `<div class="f-live">Valoare live transmisă: ${d.name === "Producție" ? `disponibilitate <b data-live="avail">${UI.pct(k.availability)}</b> (${k.run}/${k.total} utilaje)` : `OEE <b data-live="oee">${UI.pct(k.oee)}</b> · disponibilitate <b data-live="avail">${UI.pct(k.availability)}</b>`}</div>` : ""}
       ${sel === d.name ? `<button data-clear>Deselectează</button>` : ""}`;
     const b = els.card.querySelector("[data-clear]"); if (b) b.onclick = () => { sel = null; highlight(null); };
@@ -218,8 +220,9 @@
         <div>
           <h2>Flux informațional – Departamentul Tehnic</h2>
           <p>Harta legăturilor structurale: ce informații <b>primim</b> de la celelalte departamente și ce <b>oferim</b> noi.
-          <b>SCADA-ul este sursa de date pentru livrabilele TEH</b> (plan de mentenanță, opriri și energie, KPI tehnici),
-          iar celelalte departamente primesc <b>disponibilitatea utilajelor live</b>, direct din platformă, fără rapoarte intermediare.</p>
+          Codurile sunt cele din documentele de mapare ELIT Tehnic (Opis Codificare Livrabile, Maparea Legăturilor – Input).
+          <b>SCADA-ul este sursa de date pentru livrabilele TEH</b>, iar celelalte departamente primesc informația live, direct din platformă.</p>
+          <p class="f-note">În joc: Planificare și Supply Chain → Producție, Distribuție → Logistică, Financiar → Contabilitate. Din documente, fără departament în joc: ${esc(E.data.inafaraJoc.departamente.join(", "))}.</p>
         </div>
         <div class="f-counts">
           <div><span>Departamente</span><b>${deps.length}</b></div>
@@ -237,16 +240,16 @@
       <div class="panel">
         <h3>Livrabilele Departamentului Tehnic</h3>
         <div class="f-tblw"><table class="f-tbl liv">
-          <thead><tr><th>Cod</th><th>Post</th><th>Livrabil</th><th>Format</th><th>Rezoluție</th><th>Periodicitate</th><th>Timing</th><th>Timp reacție</th></tr></thead>
-          <tbody>${L.map(l => row([["Cod", esc(l.cod), "f-code"], ["Post", esc(l.post)], ["Livrabil", esc(l.livrabil) + `<span class="f-src">date SCADA</span>`], ["Format", esc(l.format)], ["Rezoluție", esc(l.rezolutie)], ["Periodicitate", esc(l.periodicitate)], ["Timing", esc(l.timing), "mono"], ["Timp reacție", esc(l.reactie)]])).join("")}</tbody>
+          <thead><tr><th>Cod</th><th>Destinatar (document)</th><th>Livrabil</th><th>Tip</th><th>Format</th><th>Rezoluție</th><th>Periodicitate</th><th>Timp reacție</th></tr></thead>
+          <tbody>${L.map(l => row([["Cod", esc(l.cod), "f-code"], ["Destinatar", esc(l.post) + (l.dep && l.dep !== l.post ? `<span class="f-src">în joc: ${esc(l.dep)}</span>` : l.dep ? "" : `<span class="f-src">nu e în joc</span>`)], ["Livrabil", esc(l.livrabil)], ["Tip", esc(l.timing)], ["Format", esc(l.format)], ["Rezoluție", esc(l.rezolutie)], ["Periodicitate", esc(l.periodicitate)], ["Timp reacție", esc(l.reactie)]], l.dep || "")).join("")}</tbody>
         </table></div>
       </div>
       <div class="f-tables">
         <div class="panel">
           <h3>Ce primim</h3>
           <div class="f-tblw"><table class="f-tbl in">
-            <thead><tr><th>Departament</th><th>Cod</th><th>Informație</th></tr></thead>
-            <tbody>${F.catreTEH.map(f => row([["Departament", esc(nice(f.dep))], ["Cod", esc(f.cod), "f-code"], ["Informație", esc(f.info)]], f.dep)).join("")}</tbody>
+            <thead><tr><th>Departament</th><th>Cod</th><th>Informație</th><th>Post furnizor</th><th>Periodicitate</th></tr></thead>
+            <tbody>${F.catreTEH.map(f => row([["Departament", esc(nice(f.dep))], ["Cod", esc(f.cod), "f-code"], ["Informație", esc(f.info)], ["Post furnizor", esc(f.post)], ["Periodicitate", esc(f.periodicitate) + " · " + esc(f.reactie)]], f.dep)).join("")}</tbody>
           </table></div>
         </div>
         <div class="panel">
@@ -254,8 +257,7 @@
           <div class="f-tblw"><table class="f-tbl out">
             <thead><tr><th>Departament</th><th>Livrabil</th><th>Informație</th></tr></thead>
             <tbody>${F.dinTEH.map(f => {
-              const c = tehCode(f.info), live = /live/i.test(f.info);
-              return row([["Departament", esc(nice(f.dep))], ["Livrabil", c ? esc(c) : live ? "SCADA live" : "TEH", "f-code"], ["Informație", esc(f.info) + (live ? `<span class="f-src">live</span>` : "")]], f.dep);
+              return row([["Departament", esc(nice(f.dep))], ["Livrabil", esc(f.tag), "f-code"], ["Informație", esc(f.info) + (f.rapid ? `<span class="f-src">răspuns rapid SCADA</span>` : "")]], f.dep);
             }).join("")}</tbody>
           </table></div>
         </div>

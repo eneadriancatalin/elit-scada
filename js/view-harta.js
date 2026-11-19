@@ -4,10 +4,9 @@
   const zoneById = Object.fromEntries(D.zones.map(z => [z.id, z]));
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const trunc = (s, n) => (s.length <= n ? s : s.slice(0, Math.max(1, n - 1)) + "…");
-  const PROGRAMS = [["Fierbere", "Fierbere"], ["Afumare", "Afumare"], ["Uscare", "Uscare"], ["Dus", "Duș"]];
 
-  let root, svg, side, simBtn;
-  let refs = {}, segs = [], legend = {}, panel = null, panelSig = "", attnSig = "", estopArm = 0;
+  let root, svg, side;
+  let refs = {}, segs = [], legend = {}, panel = null, panelSig = "", attnSig = "";
   let sel = E.selected || null;
 
   // ---------- CSS
@@ -22,31 +21,46 @@
 .h-lg-warn{display:inline-block;width:14px;height:10px;border:2px dashed var(--warn);border-radius:3px;margin-right:6px}
 .h-lg-flow{display:inline-block;width:22px;border-top:2px dashed;margin-right:6px}
 .h-sep{width:1px;height:18px;background:var(--line)}
-.h-sim{font-size:12px;padding:5px 11px;display:inline-flex;align-items:center;gap:7px;background:var(--panel);border-color:var(--line);color:var(--text)}
-.h-sim i{width:26px;height:14px;border-radius:var(--radius);background:var(--panel2);border:1px solid var(--line);position:relative;display:inline-block}
-.h-sim i::after{content:"";position:absolute;left:2px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--muted);transition:.2s}
-.h-sim:hover i::after{left:14px;background:var(--crit)}
-.h-sim.h-off{opacity:.6}
 .h-layout{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:14px;align-items:start}
+.h-layout>*{min-width:0}
+.h-bar>*{min-width:0}
 .h-hint{color:var(--muted);font-size:12px;margin:6px 2px 0}
 .h-side{padding:0;overflow:hidden;position:sticky;top:12px}
 @media (max-width:1100px){.h-layout{grid-template-columns:minmax(0,1fr)}.h-side{position:static}}
 @media (max-width:800px){.h-sep{display:none}.h-title{flex:1 1 100%}}
 
 /* harta - canvas */
-.h-canvas{position:relative;height:clamp(440px,72vh,800px);background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;touch-action:none;cursor:grab}
+.h-tools{gap:6px 14px !important;padding:6px 10px !important;justify-content:flex-start !important}
+.h-ttl{font-size:13px;font-weight:600;white-space:nowrap}
+.h-tools .h-dept{flex:0 1 auto;font-size:12px;gap:6px}
+.h-tools .h-dept select{height:26px;font-size:12px;padding:0 6px;flex:0 1 170px}
+.h-tools .h-legend{gap:4px 10px;flex:1 1 auto}
+.h-tools .h-lg{font-size:11px}
+.h-tools .h-zoom{margin-left:auto}
+.h-tools .h-zoom button{height:26px;min-width:26px;padding:0 7px;font-size:12px}
+
+.h-mapbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;min-width:0}
+.h-tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--line)}
+.h-dept{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);min-width:0;flex:1 1 220px}
+.h-dept select{min-width:0;flex:0 1 210px;max-width:100%}
+.h-dhint{padding:7px 12px;font-size:13px;color:var(--text);background:var(--panel2);border-bottom:1px solid var(--line)}
+.h-dhint b{font-weight:600}
+.h-dhint span{color:var(--muted)}
+.h-eq.dim{opacity:.25}
+.h-eq.hl .h-halo{stroke:var(--crit);stroke-width:3.5}
+.h-canvas{position:relative;height:clamp(440px,70vh,800px);overflow:hidden;touch-action:none;cursor:grab}
 .h-canvas.h-drag{cursor:grabbing}
 .h-map{display:block;width:100%;height:100%;user-select:none;-webkit-user-select:none}
-.h-zoom{position:absolute;top:10px;right:10px;display:flex;gap:4px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:4px;cursor:default}
+.h-zoom{display:flex;gap:4px;align-items:center;flex:none}
 .h-zoom button{height:28px;min-width:28px;padding:0 9px;font-size:13px}
 .h-zoom span{font:12px var(--mono);color:var(--muted);min-width:44px;text-align:center}
-@media (max-width:700px){.h-canvas{height:62vh}}
-.h-band{font:600 12px var(--font, inherit);letter-spacing:.08em;fill:var(--muted)}
+@media (max-width:700px){.h-canvas{height:min(62vh,520px)}.h-zoom button[data-zoom="fit"]{padding:0 8px}}
+.h-band{font:600 19px var(--font, inherit);letter-spacing:.08em;fill:var(--muted)}
 .h-col{fill:var(--bg);stroke:var(--line-strong, var(--line));stroke-width:1}
 .h-brbox{stroke-dasharray:5 4}
 .h-wall{stroke:var(--line);stroke-width:1}
-.h-stepn{font:600 22px var(--mono);fill:var(--muted)}
-.h-stept{font:600 13px var(--font, inherit);fill:var(--text)}
+.h-stepn{font:600 30px var(--mono);fill:var(--muted)}
+.h-stept{font:600 19px var(--font, inherit);fill:var(--text)}
 .h-arw line,.h-arw .h-brl{fill:none;stroke:var(--line-strong, var(--line));stroke-width:2}
 .h-arw path:not(.h-brl){fill:var(--line-strong, var(--line))}
 .h-arw .h-puls{fill:var(--text);opacity:0}
@@ -74,13 +88,13 @@
 .h-selr{fill:none;stroke:var(--text);stroke-width:2;opacity:0;pointer-events:none}
 .sel .h-selr{opacity:1}
 .h-eq:focus-visible .h-selr{opacity:.5}
-.h-name{fill:var(--text);font:500 13px var(--font, inherit)}
+.h-name{fill:var(--text);font:500 19px var(--font, inherit)}
 .h-pill{fill:var(--panel2);stroke:var(--line);stroke-width:1}
-.h-v{fill:var(--text);font:600 13px var(--mono)}
+.h-v{fill:var(--text);font:600 19px var(--mono)}
 .h-v.lv-warn{fill:var(--warn)}
 .h-v.lv-crit{fill:var(--crit)}
 .s-stop .h-v.lv-ok,.s-maint .h-v.lv-ok{fill:var(--muted)}
-.h-u{fill:var(--muted);font:12px var(--font, inherit)}
+.h-u{fill:var(--muted);font:16px var(--font, inherit)}
 /* desen utilaje: inox = panel2 / line-strong, contur 1px muted, detalii text */
 .h-mach{pointer-events:none}
 .s-stop .h-mach,.s-maint .h-mach{opacity:.75}
@@ -102,7 +116,7 @@
 .s-run .m-smoke{animation:h-smoke 2.1s ease-out infinite}
 @keyframes h-dash{to{stroke-dashoffset:-11}}
 @keyframes h-belt{to{stroke-dashoffset:-8}}
-@keyframes h-move{from{transform:translateX(0)}to{transform:translateX(20px)}}
+@keyframes h-move{from{transform:translateX(0)}to{transform:translateX(10px)}}
 @keyframes h-rot{to{transform:rotate(360deg)}}
 @keyframes h-smoke{0%{opacity:0;transform:translateY(0) scale(.6)}25%{opacity:.8}100%{opacity:0;transform:translateY(-16px) scale(1.6)}}
 @keyframes h-blink{50%{opacity:.3}}
@@ -144,8 +158,6 @@
 .h-row input[type=range]{flex:1;accent-color:var(--accent);padding:0}
 .h-row select{flex:1}
 .h-row b{font-family:var(--mono);min-width:44px;text-align:right}
-.h-estop{width:100%;font-weight:700;letter-spacing:.03em;padding:10px;margin-top:4px}
-.h-estop.h-armed{animation:blink 1s infinite}
 .h-open{width:100%}
 .h-empty{padding:22px 16px 10px;text-align:center;color:var(--muted)}
 .h-empty svg{width:42px;height:42px;color:var(--accent);opacity:.8}
@@ -155,6 +167,9 @@
 .h-att span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .h-att small{color:var(--muted);font-size:11px;flex:0 1 auto;max-width:45%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .h-ok{color:var(--ok);font-size:13px}
+.h-deps{display:flex;flex-wrap:wrap;gap:6px}
+.h-deps .dep-btn{height:30px;font-size:12.5px}
+.h-prm .h-lim{margin-top:2px}
 `;
 
   // ---------- ilustratii utilaje (cutie locala 140 x 70, vedere frontala / 3/4, stil plat)
@@ -321,44 +336,44 @@
     FRG01: ["Stație frig NH3", "pAsp"], CAZ01: ["Centrală abur", "presiune"], AER01: ["Aer comprimat", "presiune"], PT01: ["Post trafo", "putere"],
     APA01: ["Tratare apă", "debit"], EPU01: ["Epurare", "ph"], LAB01: ["Laborator", "probe"]
   };
-  const STEPS = ["Recepție", "Procesare", "Umplere", "Tratament termic", "Răcire", "Feliere & ambalare", "Depozit & expediție"];
+  const STEPS = [["Recepție"], ["Procesare"], ["Umplere"], ["Tratament", "termic"], ["Răcire"], ["Feliere &", "ambalare"], ["Depozit &", "expediție"]];
   const STEP_EQ = [["CF01", "CN01"], ["TOC01", "CUT01", "MAL01"], ["UMP01"], ["AF01", "AF02"], ["TR01"], ["FEL01", "AMB01", "DM01"], ["DEP01", "RMP01"]];
   const BRANCH = ["MAT01", "MAT02"];
   const UTIL = ["FRG01", "CAZ01", "AER01", "PT01", "APA01", "EPU01", "LAB01"];
-  const COL = { x0: 20, w: 170, gap: 46, y: 40, head: 64, h: 494 };
-  const TILE = { w: 150, h: 130, gap: 12 };
+  const COL = { x0: 20, w: 198, gap: 28, y: 50, head: 96, h: 556 };
+  const TILE = { w: 184, h: 140, gap: 12 };
   const colX = i => COL.x0 + i * (COL.w + COL.gap);
-  const WORLD = { w: colX(6) + COL.w + 20, h: 936 };
+  const WORLD = { w: colX(6) + COL.w + 20, h: 1036 };
   const L = {}; // id -> {x,y,w,h}
   STEP_EQ.forEach((ids, i) => {
     const area = COL.h - COL.head - 16, stack = ids.length * TILE.h + (ids.length - 1) * TILE.gap;
     const y0 = COL.y + COL.head + (area - stack) / 2;
-    ids.forEach((id, k) => { L[id] = { x: colX(i) + 10, y: y0 + k * (TILE.h + TILE.gap), w: TILE.w, h: TILE.h }; });
+    ids.forEach((id, k) => { L[id] = { x: colX(i) + 7, y: y0 + k * (TILE.h + TILE.gap), w: TILE.w, h: TILE.h }; });
   });
-  const BR = { x: colX(3), y: COL.y + COL.h + 32, w: colX(4) + COL.w - colX(3), h: 176 };
-  BRANCH.forEach((id, k) => { const w = (BR.w - 30) / 2; L[id] = { x: BR.x + 10 + k * (w + 10), y: BR.y + 34, w, h: TILE.h }; });
-  const UT = { x: COL.x0, y: 786, w: colX(6) + COL.w - COL.x0, h: 132 };
-  UTIL.forEach((id, k) => { const w = (UT.w - 20 - 60) / 7; L[id] = { x: UT.x + 10 + k * (w + 10), y: UT.y + 6, w, h: 120 }; });
+  const BR = { x: colX(3), y: COL.y + COL.h + 32, w: colX(4) + COL.w - colX(3), h: 190 };
+  BRANCH.forEach((id, k) => { const w = (BR.w - 30) / 2; L[id] = { x: BR.x + 10 + k * (w + 10), y: BR.y + 40, w, h: TILE.h }; });
+  const UT = { x: COL.x0, y: 878, w: colX(6) + COL.w - COL.x0, h: 142 };
+  UTIL.forEach((id, k) => { const w = (UT.w - 20 - 60) / 7; L[id] = { x: UT.x + 10 + k * (w + 10), y: UT.y + 6, w, h: 130 }; });
 
   function tileSVG(eq) {
     const t = L[eq.id]; if (!t) return null;
-    const { x, y, w, h } = t, dh = h - 56;
+    const { x, y, w, h } = t, dh = h - 66;
     const p = eq.params.find(q => q.key === (SHORT[eq.id] || [])[1]) || eq.params[0];
     const sc = Math.min((w - 16) / 140, (dh - 6) / 70);
-    const mx = x + (w - 140 * sc) / 2, my = y + 25 + (dh - 70 * sc) / 2;
+    const mx = x + (w - 140 * sc) / 2, my = y + 31 + (dh - 70 * sc) / 2;
     let s = `<g class="h-eq" data-id="${eq.id}" tabindex="0" role="button" aria-label="${esc(eq.name)}"><title>${esc(eq.id + " – " + eq.name)}</title>`;
     s += `<rect class="h-selr" x="${x - 4}" y="${y - 4}" width="${w + 8}" height="${h + 8}" rx="10"/>`;
     s += `<rect class="h-hit" x="${x}" y="${y}" width="${w}" height="${h}" rx="8"/>`;
-    s += `<rect class="h-pad" x="${x + 2}" y="${y + 23}" width="${w - 4}" height="${dh + 2}" rx="8"/>`;
-    s += `<rect class="h-halo" x="${x + 2}" y="${y + 23}" width="${w - 4}" height="${dh + 2}" rx="8"/>`;
-    s += `<circle class="h-dot" cx="${x + 8}" cy="${y + 12}" r="4.5"/>`;
-    s += `<text class="h-name" x="${x + 18}" y="${y + 16.5}">${esc((SHORT[eq.id] || [eq.id])[0])}</text>`;
+    s += `<rect class="h-pad" x="${x + 2}" y="${y + 29}" width="${w - 4}" height="${dh + 4}" rx="8"/>`;
+    s += `<rect class="h-halo" x="${x + 2}" y="${y + 29}" width="${w - 4}" height="${dh + 4}" rx="8"/>`;
+    s += `<circle class="h-dot" cx="${x + 9}" cy="${y + 14}" r="5.5"/>`;
+    s += `<text class="h-name" x="${x + 21}" y="${y + 20.5}">${esc((SHORT[eq.id] || [eq.id])[0])}</text>`;
     s += `<g class="h-mach" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)}) scale(${sc.toFixed(3)})">${machine(eq)}</g>`;
     if (p) {
       const vl = Math.max(E.fmt(p.max).length, E.fmt(p.min).length, 4);
-      const pw = vl * 7.9 + p.unit.length * 6.6 + 26, py = y + 25 + dh + 5;
-      s += `<rect class="h-pill" x="${(x + w / 2 - pw / 2).toFixed(1)}" y="${py}" width="${pw.toFixed(1)}" height="22" rx="11"/>`;
-      s += `<text x="${x + w / 2}" y="${py + 15.5}" text-anchor="middle"><tspan class="h-v" data-v></tspan>${p.unit ? `<tspan class="h-u" dx="4">${esc(p.unit)}</tspan>` : ""}</text>`;
+      const pw = Math.min(w - 6, vl * 11.6 + p.unit.length * 9.4 + 30), py = y + 31 + dh + 4;
+      s += `<rect class="h-pill" x="${(x + w / 2 - pw / 2).toFixed(1)}" y="${py}" width="${pw.toFixed(1)}" height="30" rx="15"/>`;
+      s += `<text x="${x + w / 2}" y="${py + 21}" text-anchor="middle"><tspan class="h-v" data-v></tspan>${p.unit ? `<tspan class="h-u" dx="4">${esc(p.unit)}</tspan>` : ""}</text>`;
     }
     s += `</g>`;
     return { s, p };
@@ -372,20 +387,20 @@
     let s = `<svg class="h-map" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plan hală: flux de producție și utilități">
       <defs><pattern id="h-dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" style="fill:var(--line-strong, var(--line))"/></pattern></defs>
       <rect x="-4000" y="-4000" width="10000" height="10000" fill="url(#h-dots)"/>`;
-    s += `<text class="h-band" x="${COL.x0}" y="26">FLUX DE PRODUCȚIE</text>`;
+    s += `<text class="h-band" x="${COL.x0}" y="34">FLUX DE PRODUCȚIE</text>`;
     STEPS.forEach((t, i) => {
       const x = colX(i);
       s += `<rect class="h-col" x="${x}" y="${COL.y}" width="${COL.w}" height="${COL.h}" rx="6"/>`;
-      s += `<path class="h-wall" d="M${x} ${COL.y + COL.head - 10}H${x + COL.w}"/>`;
-      s += `<text class="h-stepn" x="${x + 12}" y="${COL.y + 27}">${i + 1}</text>`;
-      s += `<text class="h-stept" x="${x + 12}" y="${COL.y + 46}">${esc(t)}</text>`;
+      s += `<path class="h-wall" d="M${x} ${COL.y + COL.head - 8}H${x + COL.w}"/>`;
+      s += `<text class="h-stepn" x="${x + 12}" y="${COL.y + 34}">${i + 1}</text>`;
+      t.forEach((ln, k) => { s += `<text class="h-stept" x="${x + 12}" y="${COL.y + 60 + k * 22}">${esc(ln)}</text>`; });
     });
     const ay = COL.y + COL.head + (COL.h - COL.head - 16) / 2;
     for (let i = 0; i < 6; i++) s += arrow(colX(i) + COL.w + 5, ay, colX(i + 1) - 5, ay, STEP_EQ[i]);
     // ramura maturare crud-uscate: din pasul 3 in jos, apoi inapoi sus in pasul 6
-    const c3 = colX(2) + COL.w / 2, c6 = colX(5) + COL.w / 2, my = BR.y + 34 + TILE.h / 2, bot = COL.y + COL.h;
+    const c3 = colX(2) + COL.w / 2, c6 = colX(5) + COL.w / 2, my = BR.y + 40 + TILE.h / 2, bot = COL.y + COL.h;
     s += `<rect class="h-col h-brbox" x="${BR.x}" y="${BR.y}" width="${BR.w}" height="${BR.h}" rx="6"/>`;
-    s += `<text class="h-stept" x="${BR.x + 12}" y="${BR.y + 22}">Maturare crud-uscate</text>`;
+    s += `<text class="h-stept" x="${BR.x + 12}" y="${BR.y + 28}">Maturare crud-uscate</text>`;
     s += `<g class="h-arw h-br" data-src="UMP01"><path class="h-brl" d="M${c3} ${bot + 4}V${my}H${BR.x - 8}"/><path d="M${BR.x - 9} ${my - 6} ${BR.x} ${my} ${BR.x - 9} ${my + 6}Z"/></g>`;
     s += `<g class="h-arw h-br" data-src="MAT01,MAT02"><path class="h-brl" d="M${BR.x + BR.w} ${my}H${c6}V${bot + 9}"/><path d="M${c6 - 6} ${bot + 9} ${c6} ${bot} ${c6 + 6} ${bot + 9}Z"/></g>`;
     s += `<text class="h-band" x="${COL.x0}" y="${UT.y - 12}">UTILITĂȚI</text>`;
@@ -404,11 +419,11 @@
     svg.setAttribute("viewBox", `${cvs.x.toFixed(1)} ${cvs.y.toFixed(1)} ${(cw / cvs.k).toFixed(1)} ${(ch / cvs.k).toFixed(1)}`);
     cvs.lbl.textContent = Math.round(cvs.k * 100) + "%";
   }
-  function cvFit() {
+  function cvFit(auto) {
     const cw = cvs.el.clientWidth, ch = cvs.el.clientHeight; if (!cw || !ch) return false;
-    const top = 48; // loc pentru butoanele de zoom
-    cvs.fit = Math.min(cw / (WORLD.w + 24), (ch - top) / (WORLD.h + 12));
-    cvs.k = cvs.fit; cvs.x = (WORLD.w - cw / cvs.k) / 2; cvs.y = (WORLD.h - (ch - top) / cvs.k) / 2 - top / cvs.k;
+    cvs.fit = Math.min(cw / (WORLD.w + 16), ch / (WORLD.h + 16));
+    cvs.k = cvs.fit; cvs.x = (WORLD.w - cw / cvs.k) / 2; cvs.y = (WORLD.h - ch / cvs.k) / 2;
+    if (auto && cvs.fit < 0.45) { cvs.k = 0.6; cvs.x = 0; cvs.y = 0; } // ecran mic: pornim lizibil, utilizatorul deplaseaza
     cvs.fitted = true; cvs.user = false; cvApply(); return true;
   }
   function cvZoom(f, px, py) {
@@ -417,11 +432,11 @@
     cvs.k = nk; cvs.x = wx - px / nk; cvs.y = wy - py / nk; cvApply();
   }
   function cvInit(el) {
-    cvs.el = el; cvs.lbl = el.querySelector("[data-z]");
+    cvs.el = el; cvs.lbl = root.querySelector("[data-z]");
     const pts = new Map(); let drag = null, pinch = null;
     const local = e => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     const two = () => { const a = [...pts.values()]; return { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1, x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 }; };
-    el.querySelector(".h-zoom").addEventListener("click", e => {
+    root.querySelector(".h-zoom").addEventListener("click", e => {
       const b = e.target.closest("[data-zoom]"); if (!b) return;
       const z = b.dataset.zoom;
       if (z === "fit") cvFit(); else cvZoom(z === "in" ? 1.25 : 0.8, el.clientWidth / 2, el.clientHeight / 2);
@@ -464,68 +479,40 @@
       const [px, py] = local(e);
       cvZoom(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)), px, py);
     }, { passive: false });
-    const onResize = () => { if (!cvs.fitted || !cvs.user) cvFit(); else cvApply(); };
+    const onResize = () => { if (!cvs.fitted || !cvs.user) cvFit(true); else cvApply(); };
     if (window.ResizeObserver) new ResizeObserver(onResize).observe(el); else window.addEventListener("resize", onResize);
   }
 
-  // ---------- panou lateral
-  function stepFor(p) {
-    const r = (p.hi - p.lo) / 10 || 1, pow = Math.pow(10, Math.floor(Math.log10(r))), n = r / pow;
-    return (n < 2 ? 1 : n < 5 ? 2 : 5) * pow;
+  // ---------- panou lateral (doar citire)
+  function depsFor(eq) {
+    return DEPTS.filter(d => d[2] && d[2](eq)).map(d => d[1]);
   }
-  const decimals = st => Math.max(0, -Math.floor(Math.log10(st) + 1e-9));
 
   function panelHTML(eq) {
     const z = zoneById[eq.zone] || { id: eq.zone, name: "" };
-    const c = eq.controls || [];
-    const hasSp = c.includes("setpoint");
     const rows = eq.params.map(p => `
       <div class="h-prm" data-k="${p.key}">
         <div class="h-prm-top"><span class="h-prm-l">${esc(p.label)}</span><span class="h-prm-v mono" data-v></span><span class="h-prm-u">${esc(p.unit)}</span></div>
-        <div class="h-prm-bot">
-          <svg class="h-spark" viewBox="0 0 100 26" preserveAspectRatio="none"><line x1="0" x2="100" data-lo/><line x1="0" x2="100" data-hi/><polyline/></svg>
-          <span class="h-lim mono">lim ${E.fmt(p.lo)}…${E.fmt(p.hi)}<br>SP <b data-sp></b></span>
-          ${hasSp ? `<span class="h-spb"><button data-act="sp" data-k="${p.key}" data-d="-1" title="Scade setpoint">−</button><button data-act="sp" data-k="${p.key}" data-d="1" title="Crește setpoint">+</button></span>` : ""}
-        </div>
+        <div class="h-lim mono">limite ${E.fmt(p.lo)} … ${E.fmt(p.hi)} ${esc(p.unit)} · referință <b>${E.fmt(p.sp)}</b></div>
       </div>`).join("");
     const st = eq.status;
-    let ctl = "";
-    if (c.includes("startstop")) {
-      ctl += `<button class="okbtn" data-act="start" ${st === "run" ? "disabled" : ""}>▶ Start</button>`;
-      ctl += `<button data-act="stop" ${st === "stop" ? "disabled" : ""}>■ Stop</button>`;
-    }
-    if (st === "fault") ctl += `<button class="primary" data-act="reset">↺ Reset defect</button>`;
-    ctl += st === "maint"
-      ? `<button class="okbtn" data-act="maintDone">✔ Finalizare mentenanță</button>`
-      : `<button data-act="maint">Mentenanță</button>`;
-    if (c.includes("test")) ctl += `<button data-act="test">⊙ Test detector</button>`;
-    let extra = "";
-    if (c.includes("speed")) extra += `<div class="h-row"><label>Viteză</label><input type="range" min="0" max="120" step="5" value="${eq.speed}" data-in="speed"><b data-speed>${eq.speed}%</b></div>`;
-    if (c.includes("program")) {
-      const opts = PROGRAMS.slice();
-      if (eq.program && !opts.some(o => o[0] === eq.program)) opts.unshift([eq.program, eq.program]);
-      extra += `<div class="h-row"><label>Program</label><select data-in="program">${opts.map(o => `<option value="${esc(o[0])}" ${o[0] === eq.program ? "selected" : ""}>${esc(o[1])}</option>`).join("")}</select></div>`;
-    }
+    const deps = depsFor(eq);
     return `
       <div class="h-ph">
         <div><div class="h-pt">${esc(eq.name)}</div><div class="h-ps">${eq.id} · ${esc(z.id)} ${esc(z.name)}</div></div>
         <span class="pill st-${st}">${U.statusLabel[st] || st}</span>
       </div>
       <div class="h-pb">
-        ${st === "fault" ? `<div class="h-fault">⚠ Defect activ: <b>${esc(eq.faultReason || "necunoscut")}</b><br><small>Remediați cauza, apoi apăsați Reset.</small></div>` : ""}
         <div class="h-meta">
           <div><small>Ore funcționare</small><b data-rh></b></div>
           <div><small>MTBF / MTTR</small><b>${eq.mtbf} h / ${eq.mttr} h</b></div>
           <div><small>Ultima mentenanță</small><b>${U.date(eq.lastMaint)}</b></div>
-          <div><small>Următoarea</small><b>${U.date(eq.nextMaint)}</b></div>
+          <div><small>Următoarea mentenanță</small><b>${U.date(eq.nextMaint)}</b></div>
         </div>
-        <div class="h-sec">Parametri live</div>
+        <div class="h-sec">Parametri</div>
         ${rows || `<div class="h-ps">Fără parametri măsurați.</div>`}
-        <div class="h-sec">Comenzi rapide</div>
-        <div class="h-ctl">${ctl}</div>
-        ${extra}
-        <button class="danger h-estop" data-act="estop">Oprire de urgență zonă ${esc(z.id)}</button>
-        <button class="primary h-open" data-act="open">Deschide în Utilaje & control →</button>
+        <div class="h-sec">Ce departamente folosesc datele acestui utilaj</div>
+        <div class="h-deps">${deps.map(d => `<button class="dep-btn" data-dep="${esc(d)}">${esc(d)}</button>`).join("") || `<span class="h-ps">—</span>`}</div>
       </div>`;
   }
 
@@ -534,57 +521,44 @@
       <div class="h-empty">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l7 17 2.5-7.5L21 10z"/></svg>
         <div class="h-pt" style="color:var(--text)">Niciun utilaj selectat</div>
-        <p>Faceți clic pe un utilaj de pe hartă pentru parametri live, tendințe și comenzi rapide.</p>
+        <p>Faceți clic pe un utilaj de pe hartă pentru parametri și departamentele care îi folosesc datele.</p>
       </div>
       <div class="h-pb"><div class="h-sec">Necesită atenție</div><div class="h-attn"></div></div>`;
   }
 
   function bindPanel(eq) {
-    panel = { rows: [], rh: side.querySelector("[data-rh]"), speed: side.querySelector("[data-speed]"), range: side.querySelector('[data-in="speed"]') };
+    panel = { rows: [], rh: side.querySelector("[data-rh]") };
     if (!eq) return;
     side.querySelectorAll(".h-prm").forEach(row => {
       const p = eq.params.find(q => q.key === row.dataset.k);
-      panel.rows.push({ p, row, v: row.querySelector("[data-v]"), sp: row.querySelector("[data-sp]"), pl: row.querySelector("polyline"), lo: row.querySelector("[data-lo]"), hi: row.querySelector("[data-hi]") });
+      panel.rows.push({ p, row, v: row.querySelector("[data-v]") });
     });
   }
 
   function updatePanel(eq) {
     if (panel.rh) panel.rh.textContent = Math.round(eq.runHours).toLocaleString("ro-RO") + " h";
-    if (panel.speed && document.activeElement !== panel.range) { panel.speed.textContent = eq.speed + "%"; panel.range.value = eq.speed; }
     for (const r of panel.rows) {
       const ps = E.paramState(eq, r.p);
       r.v.textContent = E.fmt(eq.values[r.p.key]);
       r.v.className = "h-prm-v mono lv-" + ps;
       r.row.className = "h-prm" + (ps === "warn" ? " h-pw" : ps === "crit" ? " h-pc" : "");
-      r.sp.textContent = E.fmt(r.p.sp) + " " + r.p.unit;
-      const hist = eq.history[r.p.key].slice(-60);
-      if (hist.length > 1) {
-        let mn = Math.min(r.p.lo, ...hist), mx = Math.max(r.p.hi, ...hist);
-        const pad = (mx - mn) * 0.08 || 1; mn -= pad; mx += pad;
-        const Y = v => (26 - (v - mn) / (mx - mn) * 26).toFixed(1);
-        r.pl.setAttribute("points", hist.map((v, i) => (i / (hist.length - 1) * 100).toFixed(1) + "," + Y(v)).join(" "));
-        r.pl.setAttribute("class", "lv-" + ps);
-        r.lo.setAttribute("y1", Y(r.p.lo)); r.lo.setAttribute("y2", Y(r.p.lo));
-        r.hi.setAttribute("y1", Y(r.p.hi)); r.hi.setAttribute("y2", Y(r.p.hi));
-      }
     }
   }
 
   function updateEmpty() {
     const box = side.querySelector(".h-attn"); if (!box) return;
-    const list = E.equipment.filter(e => e.status === "fault" || e.status === "maint" || E.eqState(e) !== "ok");
+    const list = E.equipment.filter(e => e.status === "maint" || E.eqState(e) !== "ok");
     const sig = list.map(e => e.id + e.status + E.eqState(e)).join(",");
     if (sig === attnSig) return; attnSig = sig;
     box.innerHTML = list.length ? list.map(e => {
-      const st = E.eqState(e);
-      const why = e.status === "fault" ? (e.faultReason || "Defect") : e.status === "maint" ? "Mentenanță" : st === "crit" ? "Alarmă critică" : "Avertizare";
-      return `<button class="h-att" data-act="pick" data-id="${e.id}"><i class="dot ${e.status}"></i><span>${esc(e.name)}</span><small class="${st !== "ok" ? "lv-" + st : ""}">${esc(why)}</small></button>`;
+      const why = e.status === "maint" ? "Mentenanță" : "În afara limitelor";
+      return `<button class="h-att" data-act="pick" data-id="${e.id}"><i class="dot ${e.status}"></i><span>${esc(e.name)}</span><small>${esc(why)}</small></button>`;
     }).join("") : `<div class="h-ok">✔ Toate utilajele funcționează în parametri.</div>`;
   }
 
   function renderPanel() {
     const eq = sel && E.byId[sel];
-    const sig = eq ? eq.id + "|" + eq.status + "|" + eq.program + "|" + (eq.faultReason || "") : "none";
+    const sig = eq ? eq.id + "|" + eq.status : "none";
     if (sig !== panelSig) {
       panelSig = sig; attnSig = "";
       side.innerHTML = eq ? panelHTML(eq) : emptyHTML();
@@ -595,40 +569,15 @@
 
   // ---------- evenimente
   function onPanelClick(e) {
-    const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
-    const act = b.dataset.act;
-    if (act === "pick") { E.select(b.dataset.id); return; }
-    const id = sel, eq = E.byId[id]; if (!eq) return;
-    switch (act) {
-      case "start": case "stop": case "reset": case "maintDone": case "test":
-        U.run(id, act); break;
-      case "maint": U.run(id, "maint", "intervenție lansată din Harta halei"); break;
-      case "sp": {
-        const p = eq.params.find(q => q.key === b.dataset.k); if (!p) return;
-        const st = stepFor(p);
-        U.run(id, "setpoint", { key: p.key, value: +(p.sp + st * +b.dataset.d).toFixed(decimals(st)) });
-        break;
-      }
-      case "estop":
-        if (Date.now() - estopArm < 3000) { estopArm = 0; U.run(id, "estop"); b.classList.remove("h-armed"); }
-        else {
-          estopArm = Date.now(); const txt = b.textContent;
-          b.textContent = "⚠ Confirmați: apăsați din nou (3 s)"; b.classList.add("h-armed");
-          setTimeout(() => { if (b.isConnected) { b.textContent = txt; b.classList.remove("h-armed"); } }, 3000);
-        }
-        break;
-      case "open": E.select(id); U.show("control"); break;
+    const dep = e.target.closest(".dep-btn");
+    if (dep) {
+      const name = dep.dataset.dep;
+      U.show("cereri");
+      if (U.views.cereri && U.views.cereri.pick) U.views.cereri.pick(name);
+      return;
     }
-  }
-
-  function onPanelInput(e) {
-    const t = e.target;
-    if (t.dataset.in === "speed" && panel && panel.speed) panel.speed.textContent = t.value + "%";
-  }
-  function onPanelChange(e) {
-    const t = e.target; if (!sel) return;
-    if (t.dataset.in === "speed") { U.run(sel, "speed", +t.value); t.blur(); }
-    else if (t.dataset.in === "program") U.run(sel, "program", t.value);
+    const b = e.target.closest('[data-act="pick"]');
+    if (b) E.select(b.dataset.id);
   }
 
   function pickFromMap(g) {
@@ -637,30 +586,71 @@
     if (window.matchMedia && window.matchMedia("(max-width: 1100px)").matches) side.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // ---------- filtru pe departament: ce utilaje sunt relevante pentru cine
+  const PROD_ZONES = ["Z1", "Z2", "Z3", "Z4", "Z5", "Z6"];
+  const inIds = list => eq => list.includes(eq.id);
+  const DEPTS = [
+    ["toti", "Toți", null, ""],
+    ["dg", "Director General", () => true, "vedere de ansamblu asupra întregii fabrici"],
+    ["prod", "Producție", eq => PROD_ZONES.includes(eq.zone), "toate utilajele de producție (recepție → expediție)"],
+    ["cal", "Calitate", inIds(["AF01", "AF02", "CF01", "DEP01", "MAT01", "MAT02", "TR01", "DM01", "LAB01"]), "temperaturi CCP, detector metale, laborator"],
+    ["ach", "Achiziții", eq => eq.status === "fault" || eq.nextMaint - Date.now() <= 14 * 864e5, "utilaje care cer piese (mentenanță în următoarele 14 zile)"],
+    ["log", "Logistică", inIds(["DEP01", "RMP01", "FRG01"]), "depozit frigorific, rampă, frig"],
+    ["vz", "Vânzări", inIds(["UMP01", "AF01", "AF02", "TR01"]), "pașii care limitează capacitatea"],
+    ["mkt", "Marketing", inIds(["UMP01", "FEL01", "AMB01", "AF01", "AF02", "MAT01", "MAT02"]), "linii pentru produse noi / ambalaje"],
+    ["it", "IT", () => true, "comunicație SCADA – toate punctele de măsură"],
+    ["jur", "Juridic", inIds(["CAZ01", "FRG01", "AER01", "EPU01"]), "echipamente cu autorizații ISCIR / mediu"],
+    ["cont", "Contabilitate", inIds(["PT01", "CAZ01", "FRG01", "AER01", "APA01"]), "consumatori de energie și utilități"]
+  ];
+  const DEPT_KEY = "elit.harta.dept";
+  let dept = "toti", deptSel = null, deptBox = null, deptSig = "";
+  try { const v = localStorage.getItem(DEPT_KEY); if (v && DEPTS.some(d => d[0] === v)) dept = v; } catch (err) { /* stocare indisponibila */ }
+  // 0 = estompat, 1 = relevant, 2 = evidentiat
+  function deptRel(eq) {
+    const d = DEPTS.find(x => x[0] === dept); if (!d || !d[2]) return 1;
+    if (!d[2](eq)) return 0;
+    return dept === "it" && (E.alarms || []).some(a => a.active && a.eqId === eq.id) ? 2 : 1;
+  }
+  function deptHint(n) {
+    const d = DEPTS.find(x => x[0] === dept);
+    const sig = dept + "|" + n;
+    if (!deptBox || sig === deptSig) return; deptSig = sig;
+    if (!d || !d[2]) { deptBox.hidden = true; return; }
+    deptBox.hidden = false;
+    deptBox.innerHTML = `<b>${esc(d[1])}</b>: ${esc(d[3])} <span>· ${n} utilaje relevante</span>`;
+  }
+  function deptInit() {
+    deptSel = root.querySelector("[data-dept]"); deptBox = root.querySelector(".h-dhint");
+    deptSel.value = dept;
+    deptSel.addEventListener("change", () => {
+      dept = deptSel.value; deptSig = "";
+      try { localStorage.setItem(DEPT_KEY, dept); } catch (err) { /* stocare indisponibila */ }
+      render();
+    });
+  }
+
   // ---------- init / render
   function init(r) {
     root = r;
     const style = document.createElement("style"); style.textContent = CSS; document.head.appendChild(style);
-    const leg = [["run", "În funcțiune"], ["stop", "Oprit"], ["fault", "Defect"], ["maint", "Mentenanță"]];
+    const leg = [["run", "În funcțiune"], ["stop", "Oprit"], ["maint", "Mentenanță"]];
     root.innerHTML = `
-      <div class="panel h-bar">
-        <div class="h-title"><b>Plan hală – flux de producție</b><span>Click pe un utilaj pentru detalii și comenzi</span></div>
-        <div class="h-legend">
-          ${leg.map(([k, l]) => `<span class="h-lg"><i class="dot ${k}"></i>${l}<b data-c="${k}">0</b></span>`).join("")}
-          <span class="h-lg"><i class="h-lg-warn"></i>Avertizare<b data-c="warn">0</b></span>
-          <span class="h-sep"></span>
-          <span class="h-lg"><i class="h-lg-flow" style="border-top-style:solid;border-color:var(--text)"></i>Flux producție</span>
-          <span class="h-lg"><i class="h-lg-flow" style="border-color:var(--muted)"></i>Ramură maturare</span>
-        </div>
-        <button class="h-sim" type="button" title="Demo: provoacă un defect pe utilajul selectat"><i></i>Simulează defect</button>
-      </div>
       <div class="h-layout">
-        <div style="min-width:0"><div class="h-canvas"><div class="h-zoom"><button type="button" data-zoom="out" title="Micșorează">−</button><span data-z>100%</span><button type="button" data-zoom="in" title="Mărește">+</button><button type="button" data-zoom="fit" title="Potrivește planul în fereastră">Potrivește</button></div></div><div class="h-hint">Trageți pentru a deplasa planul · rotița mouse-ului sau ciupire pentru zoom · click pe utilaj pentru detalii</div></div>
+        <div style="min-width:0"><div class="h-mapbox"><div class="h-tools">
+          <b class="h-ttl">Plan hală</b>
+          <label class="h-dept">Arată pentru: <select data-dept>${DEPTS.map(d => `<option value="${d[0]}">${esc(d[1])}</option>`).join("")}</select></label>
+          <div class="h-legend">
+            ${leg.map(([k, l]) => `<span class="h-lg"><i class="dot ${k}"></i>${l}<b data-c="${k}">0</b></span>`).join("")}
+            <span class="h-sep"></span>
+            <span class="h-lg"><i class="h-lg-flow" style="border-top-style:solid;border-color:var(--text)"></i>Flux</span>
+            <span class="h-lg"><i class="h-lg-flow" style="border-color:var(--muted)"></i>Maturare</span>
+          </div>
+          <div class="h-zoom"><button type="button" data-zoom="out" title="Micșorează">−</button><span data-z>100%</span><button type="button" data-zoom="in" title="Mărește">+</button><button type="button" data-zoom="fit" title="Potrivește planul în fereastră">Potrivește</button></div>
+        </div><div class="h-dhint" hidden></div><div class="h-canvas"></div></div><div class="h-hint">Click pe un utilaj pentru parametri și departamentele care îi folosesc datele · trageți pentru a deplasa planul · rotița mouse-ului sau ciupire pentru zoom</div></div>
         <aside class="panel h-side"></aside>
       </div>`;
     const wrapEl = root.querySelector(".h-canvas");
     side = root.querySelector(".h-side");
-    simBtn = root.querySelector(".h-sim");
     root.querySelectorAll("[data-c]").forEach(n => legend[n.dataset.c] = n);
 
     const built = buildSVG();
@@ -673,32 +663,27 @@
     segs = [...svg.querySelectorAll(".h-arw")].map(el => ({ el, srcs: el.dataset.src.split(","), run: null }));
 
     cvInit(wrapEl);
+    deptInit();
     svg.addEventListener("keydown", e => {
       if (e.key === "Enter" || e.key === " ") { const g = e.target.closest && e.target.closest(".h-eq"); if (g) { e.preventDefault(); pickFromMap(g); } }
     });
     side.addEventListener("click", onPanelClick);
-    side.addEventListener("input", onPanelInput);
-    side.addEventListener("change", onPanelChange);
-    simBtn.addEventListener("click", () => {
-      const eq = sel && E.byId[sel];
-      if (!eq) { U.toast("Selectați întâi un utilaj pe hartă", "err"); return; }
-      if (eq.status === "fault") { U.toast(eq.name + " este deja în defect", "err"); return; }
-      E.simulateFault(sel);
-    });
     E.on("select", id => { sel = id; render(); });
     render();
   }
 
   function render() {
     if (!root || !svg) return;
-    if (!cvs.fitted) cvFit();
-    const counts = { run: 0, stop: 0, fault: 0, maint: 0, warn: 0 };
+    if (!cvs.fitted) cvFit(true);
+    const counts = { run: 0, stop: 0, fault: 0, maint: 0, warn: 0 }; let relN = 0;
     for (const eq of E.equipment) {
       counts[eq.status] = (counts[eq.status] || 0) + 1;
       const r = refs[eq.id]; if (!r) continue;
       const st = E.eqState(eq);
       if (st === "warn") counts.warn++;
-      const cls = "h-eq s-" + eq.status + (st !== "ok" ? " w-" + st : "") + (eq.id === sel ? " sel" : "");
+      const rel = deptRel(eq);
+      const cls = "h-eq s-" + eq.status + (st !== "ok" ? " w-" + st : "") + (eq.id === sel ? " sel" : "") + (rel === 0 ? " dim" : rel === 2 ? " hl" : "");
+      if (rel) relN++;
       if (cls !== r.cls) { r.g.setAttribute("class", cls); r.cls = cls; }
       if (r.v && r.p) {
         const txt = E.fmt(eq.values[r.p.key]);
@@ -712,9 +697,7 @@
       if (run !== s.run) { s.el.classList.toggle("on", run); s.run = run; }
     }
     for (const k in legend) legend[k].textContent = counts[k] || 0;
-    const selEq = sel && E.byId[sel];
-    simBtn.classList.toggle("h-off", !selEq || selEq.status === "fault");
-    simBtn.title = selEq ? "Demo: provoacă un defect pe " + selEq.name : "Selectați întâi un utilaj pe hartă";
+    deptHint(relN);
     renderPanel();
   }
 

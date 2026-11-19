@@ -15,12 +15,13 @@
     pct(v) { return (v * 100).toFixed(1) + "%"; },
     // vederile se inregistreaza aici: UI.views.harta = { init(root), render() }
     views: {},
-    current: "harta",
+    current: "cereri",
     show(view) {
       UI.current = view;
       UI.$$("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.view === view));
       UI.$$(".view").forEach(s => s.classList.toggle("active", s.id === "view-" + view));
       const v = UI.views[view]; if (v && v.render) v.render();
+      if (UI.markDep) UI.markDep(UI.views.cereri && UI.views.cereri.selected ? UI.views.cereri.selected() : "");
     }
   };
 
@@ -33,22 +34,18 @@
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem("elit-theme", next); } catch (e) {}
   };
-  $("#siteName").textContent = E.data.site;
 
   function renderTop() {
     const k = E.kpi();
     $("#topKpis").innerHTML = `
-      <div class="kpi"><span>Utilaje în funcțiune</span><b>${k.run}/${k.total}</b></div>
-      <div class="kpi"><span>Disponibilitate</span><b>${UI.pct(k.availability)}</b></div>
-      <div class="kpi"><span>OEE producție</span><b>${UI.pct(k.oee)}</b></div>
-      <div class="kpi"><span>Putere absorbită</span><b>${k.power.toFixed(0)} kW</b></div>
-      <div class="kpi ${k.critAlarms ? "crit" : k.activeAlarms ? "warn" : ""}"><span>Alarme active</span><b>${k.activeAlarms}</b></div>`;
-    const b = $("#alarmBadge"); b.textContent = k.unackAlarms; b.style.display = k.unackAlarms ? "" : "none";
+      <div class="kpi"><span>Livrabile TEH</span><b>${E.data.livrabileTEH.length}</b></div>
+      <div class="kpi"><span>Departamente</span><b>${E.data.departamente.length}</b></div>
+      <div class="kpi"><span>Disponibilitate utilaje</span><b>${UI.pct(k.availability)}</b></div>
+      <div class="kpi"><span>OEE producție</span><b>${UI.pct(k.oee)}</b></div>`;
     $("#clock").textContent = new Date().toLocaleString("ro-RO");
   }
   E.on("tick", () => { renderTop(); const v = UI.views[UI.current]; if (v && v.render) v.render(); });
   E.on("change", () => { renderTop(); const v = UI.views[UI.current]; if (v && v.render) v.render(); });
-  E.on("alarm", a => { if (a.level === "crit") UI.toast("⚠ " + a.msg, "err"); });
 
   // reincarcare automata cand ruleaza pe server.py (nu face nimic din file://)
   if (location.protocol.startsWith("http")) {
@@ -63,7 +60,16 @@
   // initializarea vederilor dupa ce toate scripturile s-au incarcat
   window.addEventListener("DOMContentLoaded", () => {
     for (const name in UI.views) { const root = document.getElementById("view-" + name); try { UI.views[name].init(root); } catch (e) { console.error(name, e); root.innerHTML = `<p class="err">Eroare vedere ${name}: ${e.message}</p>`; } }
+    // bara rapida "Vine cineva de la:" - un click deschide tot ce ii trebuie departamentului
+    const qd = $("#quickDeps");
+    qd.innerHTML = `<span>Vine cineva de la:</span>` + E.data.departamente.map(d => `<button class="dep-btn" data-dep="${d}">${d}</button>`).join("");
+    qd.onclick = ev => {
+      const b = ev.target.closest("button[data-dep]"); if (!b) return;
+      UI.show("cereri"); if (UI.views.cereri && UI.views.cereri.pick) UI.views.cereri.pick(b.dataset.dep);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    UI.markDep = d => UI.$$("#quickDeps button").forEach(b => b.classList.toggle("on", UI.current === "cereri" && b.dataset.dep === d));
     renderTop();
-    const h = decodeURIComponent(location.hash.slice(1)).split("/")[0]; UI.show(UI.views[h] ? h : "harta");
+    const h =decodeURIComponent(location.hash.slice(1)).split("/")[0]; UI.show(UI.views[h] ? h : "cereri");
   });
 })();

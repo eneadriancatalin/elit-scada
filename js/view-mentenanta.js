@@ -1,4 +1,4 @@
-// ELIT SCADA - vedere "Mentenanță & KPI" (livrabile TEH 001 / TEH 002 / TEH 003)
+// ELIT SCADA - vedere "Mentenanță & KPI" (livrabile TEH 001, TEH 003, TEH 019)
 (function () {
   const E = window.ELIT;
   const DAY = 864e5;
@@ -125,10 +125,10 @@
     root.innerHTML = `
     <div class="m-wrap">
       <div class="m-head">
-        <div><h2>Mentenanță & KPI tehnici</h2><p>Date live din SCADA – sursă pentru livrabilele TEH 001, TEH 002 și TEH 003</p></div>
+        <div><h2>Mentenanță & KPI tehnici</h2><p>Date tehnice – sursă pentru livrabilele TEH 001 (raport lunar KPI), TEH 003 (plan mentenanță) și TEH 019 (energie)</p></div>
         <div class="m-actions">
-          <button class="primary" data-rep="TEH 002"><b>TEH 002</b>Generează raport opriri & energie</button>
-          <button class="primary" data-rep="TEH 003"><b>TEH 003</b>Generează raport disponibilitate & KPI</button>
+          <button class="primary" data-rep="TEH 019"><b>TEH 019</b>Generează raport energie & opriri</button>
+          <button class="primary" data-rep="TEH 001"><b>TEH 001</b>Generează raport lunar KPI</button>
         </div>
       </div>
       <div class="m-tiles">
@@ -152,7 +152,7 @@
           <div class="m-legend"><span><i style="background:var(--text)"></i>≥ 85% clasă mondială</span><span><i style="background:var(--warn)"></i>65–85%</span><span><i style="background:var(--crit)"></i>&lt; 65%</span></div>
         </div>
         <div class="panel m-panel">
-          <h3>Putere absorbită – PT01 <small>ultimele 120 min simulate</small></h3>
+          <h3>Putere absorbită – PT01 <small>ultimele 120 min</small></h3>
           <div class="m-stats">
             <div><span>Acum</span><b data-s="now">–</b></div>
             <div><span>Medie</span><b data-s="avg">–</b></div>
@@ -163,7 +163,7 @@
         </div>
       </div>
       <div class="panel m-panel">
-        <h3><span>Plan mentenanță preventivă · TEH 001</span><small>Șef Serviciu Tehnic / Mentenanță · lunar · ordonat după scadență</small></h3>
+        <h3><span>Plan mentenanță preventivă · TEH 003</span><small>către Producție · săptămânal · ordonat după scadență</small></h3>
         <div class="m-tblw"><table class="m-tbl">
           <thead><tr><th>Utilaj</th><th>Stare</th><th>Ultima mentenanță</th><th>Următoarea</th><th>Zile rămase</th><th>Ore funcționare</th><th>Acțiune</th></tr></thead>
           <tbody></tbody>
@@ -278,7 +278,7 @@
     }).join("");
   }
 
-  // ---- rapoarte TEH 002 / TEH 003 (fereastră modală tipăribilă)
+  // ---- rapoarte TEH 019 / TEH 001 (fereastră modală tipăribilă)
   function recipients(code, kw) {
     const f = E.data.fluxuri.dinTEH.filter(x => x.info.includes(code) || (kw && x.info.includes(kw)));
     return f.map(x => x.dep).join(", ") || "Conducere Generală";
@@ -289,14 +289,14 @@
     return `<div class="m-rh">
       <div><h1><span class="m-code">${code}</span>${esc(title)}</h1>
         <div>ELIT SRL · Departament Tehnic / Mentenanță · ${esc(E.data.site)}</div>
-        <div>Responsabil: ${esc(L.post || "")} · Destinatari: ${esc(recipients(code, code === "TEH 003" ? "KPI" : null))}</div></div>
-      <div class="m-meta">Generat: ${now.toLocaleString("ro-RO")}<br>Utilizator: ${esc(E.user)}<br>Periodicitate: ${esc(L.periodicitate || "")} · Termen: ${esc(L.timing || "")}<br>Format: ${esc(L.format || "")} · Timp reacție: ${esc(L.reactie || "")}</div>
+        <div>Emitent: Director Tehnic · Destinatar: ${esc(L.post || "")}</div></div>
+      <div class="m-meta">Generat: ${now.toLocaleString("ro-RO")}<br>Utilizator: ${esc(E.user)}<br>Periodicitate: ${esc(L.periodicitate || "")} · Tip: ${esc(L.timing || "")}<br>Format: ${esc(L.format || "")} · Timp reacție: ${esc(L.reactie || "")}</div>
     </div>`;
   }
   const sumBox = (l, v) => `<div><span>${l}</span><b>${v}</b></div>`;
   const signs = code => {
     const L = E.data.livrabileTEH.find(l => l.cod === code) || {};
-    return `<div class="m-sign"><div>Întocmit: ${esc(L.post || "")}</div><div>Verificat / Aprobat: Director Tehnic</div></div>
+    return `<div class="m-sign"><div>Întocmit: Departament Tehnic</div><div>Verificat / Aprobat: Director Tehnic</div></div>
     <div class="m-foot">Sursa datelor: platforma SCADA ELIT (simulare didactică). Valorile se recalculează la fiecare generare a raportului.</div>`;
   };
 
@@ -308,7 +308,7 @@
     const h = E.byId.PT01.history.putere;
     const av = h.reduce((s, v) => s + v, 0) / (h.length || 1);
     const defects = E.events.filter(ev => ev.type === "alarm" && /DEFECT/.test(ev.msg)).slice(0, 15);
-    return header("TEH 002", "Raport opriri neplanificate și consumuri energie") + `
+    return header("TEH 019", "Raport de consum și cost al energiei + opriri neplanificate") + `
       <h4>Sinteză</h4>
       <div class="m-sum">
         ${sumBox("Opriri neplanificate (luna)", stops)}
@@ -329,14 +329,14 @@
         ${defects.map(ev => `<tr><td class="r">${UI.time(ev.time)}</td><td>${esc(ev.eqId || "")}</td><td>${esc(ev.msg)}</td></tr>`).join("") || `<tr><td colspan="3">Niciun defect în sesiunea curentă.</td></tr>`}
       </tbody></table></div>
       <p class="m-foot">Consumul de energie este integrat din puterea activă măsurată la postul trafo PT01 (1 tick = 1 minut simulat). Tarif utilizat pentru estimare: ${TARIF} lei/kWh (ipoteză demo).</p>
-      ${signs("TEH 002")}`;
+      ${signs("TEH 019")}`;
   }
 
   function report003() {
     const k = E.kpi(), eqs = E.equipment;
     const mtbf = avg(eqs, e => e.mtbf), mttr = avg(eqs, e => e.mttr);
     const ai = mtbf / (mtbf + mttr);
-    return header("TEH 003", "Raport disponibilitate utilaje și KPI tehnici (OEE, MTBF, MTTR)") + `
+    return header("TEH 001", "Raport lunar de activitate al Departamentului Tehnic (KPI: OEE, MTBF, MTTR, cost)") + `
       <h4>Sinteză</h4>
       <div class="m-sum">
         ${sumBox("Disponibilitate instantanee", UI.pct(k.availability))}
@@ -356,7 +356,7 @@
         }).join("")}
       </tbody></table></div>
       <p class="m-foot">OEE = Disponibilitate (A) × Performanță (P) × Calitate (Q), calculat doar pentru utilajele de producție (fără utilități și laborator). Țintă OEE: 85%.</p>
-      ${signs("TEH 003")}`;
+      ${signs("TEH 001")}`;
   }
 
   function openReport(code) {
@@ -365,7 +365,7 @@
     m.className = "m-modal"; m.id = "m-modal";
     m.innerHTML = `<div class="m-sheet" role="dialog" aria-modal="true">
       <div class="m-bar-top m-noprint"><button class="primary" data-x="print">Tipărește / Salvează PDF</button><button data-x="close">Închide</button></div>
-      ${code === "TEH 002" ? report002() : report003()}
+      ${code === "TEH 019" ? report002() : report003()}
     </div>`;
     m.addEventListener("click", ev => {
       if (ev.target === m) return closeReport();

@@ -3,8 +3,12 @@
 (function () {
   const D = window.ELIT_DATA;
   const listeners = {};
-  const rnd = (a, b) => a + Math.random() * (b - a);
-  const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+  // FARA SIMULARE: valorile stau fixe, iar datele "aleatoare" (ore functionare, scadente, MTBF...) sunt aceleasi la fiecare deschidere
+  const STATIC = true;
+  let seed = 20261119;
+  const srand = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const rnd = (a, b) => a + srand() * (b - a);
+  const gauss = () => STATIC ? 0 : (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
 
   // ---- stare utilaje
   const equipment = D.equipment.map((e, i) => ({
@@ -47,7 +51,7 @@
     eq.alarmFlags[key] = level;
     const a = { id: alarmSeq++, eqId: eq.id, param: key, level, msg, time: Date.now(), ack: false, active: true };
     alarms.unshift(a); if (alarms.length > 300) alarms.pop();
-    log(eq.id, (level === "crit" ? "ALARMA: " : "Avertizare: ") + msg, "alarm");
+    log(eq.id, (level === "crit" ? "ALARMĂ: " : "Avertizare: ") + msg, "alarm");
     emit("alarm", a);
   }
   function clearAlarm(eq, key, silent) {
@@ -85,21 +89,21 @@
         } else if (eq.alarmFlags[p.key]) clearAlarm(eq, p.key);
       }
       if (running) {
-        eq.runHours += 1 / 3600 * 60; // 1 tick = 1 minut simulat
-        eq.oee.a = Math.min(0.995, eq.oee.a + 0.0002); eq.oee.p = clamp(eq.oee.p + gauss() * 0.002, 0.75, 0.99);
+        if (!STATIC) eq.runHours += 1 / 60; // 1 tick = 1 minut simulat
+        if (!STATIC) eq.oee.a = Math.min(0.995, eq.oee.a + 0.0002); if (!STATIC) eq.oee.p = clamp(eq.oee.p + gauss() * 0.002, 0.75, 0.99);
       } else if (eq.status === "fault") {
         eq.oee.a = Math.max(0.5, eq.oee.a - 0.002);
       }
       if (eq._drift && Date.now() > eq._drift.until) delete eq._drift;
     }
     // evenimente aleatoare: deriva parametru sau defect
-    if (Math.random() < 0.025) {
+    if (!STATIC && Math.random() < 0.025) {
       const cand = equipment.filter(e => e.status === "run" && e.params.length);
       const eq = cand[Math.floor(Math.random() * cand.length)];
       const p = eq.params[Math.floor(Math.random() * eq.params.length)];
       eq._drift = { key: p.key, delta: (p.hi - p.lo) * rnd(0.6, 1.2) * (Math.random() < 0.5 ? -1 : 1), until: Date.now() + rnd(15, 40) * 1000 };
     }
-    if (Math.random() < 0.006) {
+    if (!STATIC && Math.random() < 0.006) {
       const cand = equipment.filter(e => e.status === "run" && e.controls.includes("startstop"));
       const eq = cand[Math.floor(Math.random() * cand.length)];
       if (eq) fault(eq, pick(FAULTS[eq.type] || FAULTS._));
@@ -109,23 +113,23 @@
   const pick = a => a[Math.floor(Math.random() * a.length)];
   // defecte realiste pe tip de utilaj
   const FAULTS = {
-    camera: ["Vaporizator inghetat - degivrare esuata", "Ventilator vaporizator oprit", "Usa camerei ramasa deschisa", "Senzor temperatura defect"],
-    celula: ["Generator fum blocat", "Senzor temperatura miez defect", "Presiune abur insuficienta", "Usa celulei neinchisa"],
-    tunel: ["Ventilator tunel oprit", "Banda transportoare blocata"],
-    tocator: ["Suprasarcina motor", "Cutit / sita uzata - vibratii", "Protectie termica declansata"],
-    cutter: ["Suprasarcina motor", "Capac deschis - interblocare", "Vacuum insuficient"],
-    malaxor: ["Suprasarcina motor", "Vacuum insuficient"],
-    umplere: ["Presiune umplere instabila", "Clipsator blocat", "Lipsa membrana"],
-    feliere: ["Lama tocita - vibratii", "Banda blocata", "Protectie usa deschisa"],
-    ambalare: ["Folie rupta", "Lipsa gaz MAP", "Rezistenta sudura defecta"],
-    detector: ["Test etalon esuat", "Banda respingere blocata"],
-    compresor: ["Presiune ulei scazuta", "Temperatura refulare mare", "Protectie termica motor"],
-    cazan: ["Nivel apa scazut", "Flacara stinsa", "Presiune abur maxima"],
-    electric: ["Declansare intrerupator general", "Supratensiune retea"],
-    apa: ["Pompa dozare oprita", "Filtru colmatat"],
-    cantar: ["Celula cantarire decalibrata"],
-    rampa: ["Usa sectionala blocata", "Burduf etansare deteriorat"],
-    _: ["Senzor defect", "Protectie termica declansata"]
+    camera: ["Vaporizator înghețat - degivrare eșuată", "Ventilator vaporizator oprit", "Ușa camerei rămasă deschisă", "Senzor temperatură defect"],
+    celula: ["Generator fum blocat", "Senzor temperatură miez defect", "Presiune abur insuficientă", "Ușa celulei neînchisă"],
+    tunel: ["Ventilator tunel oprit", "Banda transportoare blocată"],
+    tocator: ["Suprasarcină motor", "Cuțit / sită uzată - vibrații", "Protecție termică declanșată"],
+    cutter: ["Suprasarcină motor", "Capac deschis - interblocare", "Vacuum insuficient"],
+    malaxor: ["Suprasarcină motor", "Vacuum insuficient"],
+    umplere: ["Presiune umplere instabilă", "Clipsator blocat", "Lipsă membrană"],
+    feliere: ["Lama tocită - vibrații", "Banda blocată", "Protecție ușă deschisă"],
+    ambalare: ["Folie ruptă", "Lipsă gaz MAP", "Rezistență sudură defectă"],
+    detector: ["Test etalon esuat", "Banda respingere blocată"],
+    compresor: ["Presiune ulei scăzută", "Temperatura refulare mare", "Protecție termică motor"],
+    cazan: ["Nivel apă scăzut", "Flacăra stinsă", "Presiune abur maximă"],
+    electric: ["Declanșare întrerupător general", "Supratensiune rețea"],
+    apa: ["Pompa dozare oprită", "Filtru colmatat"],
+    cantar: ["Celula cântărire decalibrată"],
+    rampa: ["Ușa secțională blocată", "Burduf etanșare deteriorat"],
+    _: ["Senzor defect", "Protecție termică declanșată"]
   };
   function fault(eq, reason) {
     eq.status = "fault"; eq.faultReason = reason; eq.stops++;
@@ -139,18 +143,18 @@
     const eq = byId[id]; if (!eq) return { ok: false, msg: "Utilaj inexistent" };
     switch (cmd) {
       case "start":
-        if (eq.status === "fault") return { ok: false, msg: "Utilaj in defect - faceti RESET intai" };
-        if (eq.status === "maint") return { ok: false, msg: "Utilaj in mentenanta - incheiati lucrarea intai" };
+        if (eq.status === "fault") return { ok: false, msg: "Utilaj în defect - faceți RESET întâi" };
+        if (eq.status === "maint") return { ok: false, msg: "Utilaj în mentenanță - încheiați lucrarea întâi" };
         eq.status = "run"; log(id, `Pornire ${eq.name}`); break;
       case "stop": eq.status = "stop"; log(id, `Oprire ${eq.name}`); break;
       case "reset":
-        if (eq.status !== "fault") return { ok: false, msg: "Nu exista defect activ" };
+        if (eq.status !== "fault") return { ok: false, msg: "Nu există defect activ" };
         eq.status = "stop"; delete eq.faultReason; clearAlarm(eq, "_status"); log(id, `Reset defect ${eq.name}`); break;
       case "maint":
-        eq.status = "maint"; log(id, `Trecere in MENTENANTA: ${eq.name}${value ? " - " + value : ""}`); break;
+        eq.status = "maint"; log(id, `Trecere in MENTENANȚĂ: ${eq.name}${value ? " - " + value : ""}`); break;
       case "maintDone":
         eq.status = "stop"; eq.lastMaint = Date.now(); eq.nextMaint = Date.now() + 30 * 864e5;
-        clearAlarm(eq, "_status"); log(id, `Mentenanta finalizata: ${eq.name}`); break;
+        clearAlarm(eq, "_status"); log(id, `Mentenanță finalizată: ${eq.name}`); break;
       case "setpoint": {
         const p = eq.params.find(p => p.key === value.key); if (!p) return { ok: false, msg: "Parametru inexistent" };
         const old = p.sp; p.sp = clamp(+value.value, p.min, p.max);
@@ -161,15 +165,15 @@
       case "test": log(id, `Test detector cu etalon Fe 2.0 / NFe 2.5 / Inox 3.0 mm - OK`); break;
       case "estop":
         equipment.forEach(e => { if (e.status === "run" && e.zone === eq.zone) e.status = "stop"; });
-        log(id, `OPRIRE DE URGENTA zona ${eq.zone}`, "system"); break;
-      default: return { ok: false, msg: "Comanda necunoscuta" };
+        log(id, `OPRIRE DE URGENȚĂ zona ${eq.zone}`, "system"); break;
+      default: return { ok: false, msg: "Comanda necunoscută" };
     }
     emit("change", eq);
     return { ok: true };
   }
   function ackAlarm(alarmId) {
     const a = alarms.find(a => a.id === alarmId); if (!a || a.ack) return;
-    a.ack = true; a.ackBy = user; a.ackTime = Date.now(); log(a.eqId, `Alarma #${a.id} confirmata`, "alarm"); emit("change", null);
+    a.ack = true; a.ackBy = user; a.ackTime = Date.now(); log(a.eqId, `Alarma #${a.id} confirmată`, "alarm"); emit("change", null);
   }
   function ackAll() { alarms.filter(a => !a.ack).forEach(a => ackAlarm(a.id)); }
   function simulateFault(id, reason) { const eq = byId[id]; if (eq) { fault(eq, reason || "Defect simulat (demo)"); emit("change", eq); } }
