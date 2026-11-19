@@ -4,8 +4,8 @@
   "private": true,
   "description": "Simulare SCADA pentru Departamentul Tehnic ELIT – proiect de curs (Maparea Legaturilor Structurale)",
   "scripts": {
-    "start": "node server.js 8080",
-    "dev": "node server.js 8080"
+    "start": "node dev/server.js 8080",
+    "dev": "node dev/server.js 8080"
   },
   "engines": {
     "node": ">=18"

@@ -1,11 +1,11 @@
-// Server local ELIT SCADA – fara dependinte. Porneste cu:  npm start   (sau: node server.js)
+// Server local ELIT SCADA – fara dependinte. Porneste cu:  npm start   (sau: node dev/server.js)
 // Serveste fisierele statice si ofera /__version pentru reincarcare automata a paginii cand modifici fisiere.
 // Pe Vercel nu e nevoie de el: site-ul e static si merge direct.
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, "..");
 const PORT = Number(process.env.PORT || process.argv[2] || 8080);
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",

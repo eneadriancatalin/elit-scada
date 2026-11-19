@@ -30,4 +30,4 @@ Fără server: deschide direct `index.html` în browser.
 | `js/data.js` | utilaje, departamente, fluxuri, livrabile TEH |
 | `js/core.js` | motorul de simulare (valori, alarme, comenzi, capacitate) |
 | `js/view-*.js` | câte un fișier pentru fiecare tab |
-| `server.js` | server local minimal (doar pentru lucru local) |
+| `dev/server.js` | server local minimal (doar pentru lucru local; e în `dev/` ca Vercel să nu-l ruleze) |
